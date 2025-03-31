@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   tei:
+    platform: linux/amd64
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
     # Model can be overridden using the TEI_MODEL environment variable
     command: --model-id ${TEI_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
@@ -11,6 +12,7 @@ services:
       - ./tei_data:/data
 
   tgi:
+    platform: linux/amd64
     image: ghcr.io/huggingface/text-generation-inference:3.1.0
     #command: --model-id ${TGI_MODEL:-Qwen/Qwen2.5-0.5B-Instruct} --num-shard 1 --disable-custom-kernels
     command: --model-id ${TGI_MODEL:-HuggingFaceTB/SmolLM-135M-Instruct} --num-shard 1 --disable-custom-kernels
