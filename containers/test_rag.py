@@ -59,9 +59,11 @@ def main():
         if resp_generate.ok:
             data = resp_generate.json()
             generated_answer = data.get("generated_text", "")
+            response_time = data.get("timing")
             # Ensure we have contexts as a list (if not present, default to empty list)
             contexts = data.get("contexts", [])
             print("Generated response:", generated_answer)
+            print("Response time:", response_time)
             print("Retrieved contexts:", contexts)
             
             # Evaluate using RAGAS metrics
