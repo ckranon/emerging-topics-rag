@@ -18,6 +18,8 @@ except ImportError:
 
 from huggingface_hub import InferenceClient
 from transformers import AutoTokenizer
+import time
+
 
 # Initialize FastAPI application
 app = FastAPI()
@@ -99,19 +101,23 @@ async def upload_documents(req: UploadRequest):
         )
 
 @app.post("/generate")
+
+
 async def generate_text(request: Request):
     """
     Endpoint to generate responses using Retrieval-Augmented Generation (RAG):
-    - If the vector index is not in memory, it is loaded from disk.
-    - Relevant nodes matching the query are retrieved.
-    - A prompt is constructed using a system message and retrieved context.
-    - The prompt is sent to the TGI service for text generation.
-
+    - Loads the vector index if not in memory.
+    - Retrieves relevant nodes via similarity search.
+    - Constructs a prompt from the retrieved documents.
+    - Sends the prompt to the TGI service for text generation.
+    
     Returns:
-        JSON response containing the generated text.
+        JSON response containing the generated text along with timing metrics.
     """
     global index
     try:
+        time_start = time.time()  # Start total timer
+
         data = await request.json()
         new_message = data.get("new_message", {})
         if "content" not in new_message:
@@ -149,22 +155,33 @@ async def generate_text(request: Request):
             tokenize=False
         )
         
-        # Generate response using the TGI service
+        # Start timer for answering phase (including prompt building if desired)
+
         answer = generator.text_generation(
             prompt,
             max_new_tokens=128,  # Limit response length
-            top_p=0.8,  # Probability threshold for nucleus sampling
-            temperature=0.1,  # Control randomness of output
+            top_p=0.8,           # Nucleus sampling threshold
+            temperature=0.1,     # Control randomness of output
             stop=[tokenizer.eos_token or "<|eot_id|>"],
-            do_sample=True,  # Enable sampling for diverse responses
+            do_sample=True,      # Enable sampling for diverse responses
             return_full_text=False
         )
-        return {"generated_text": answer, "contexts": [node.text for node in nodes_retrieved]}
+        
+        time_end = time.time()      # End total timer
+        
+        return {
+            "generated_text": answer,
+            "contexts": [node.text for node in nodes_retrieved],
+            "timing": {
+                "generation_time_seconds": round(time_end - time_start, 4)
+            }
+        }
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Error during generation: {e}"
         )
+
 
 @app.get("/")
 def read_root():
@@ -178,3 +195,4 @@ def read_root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
