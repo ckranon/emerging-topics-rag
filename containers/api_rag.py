@@ -116,7 +116,7 @@ async def generate_text(request: Request):
     """
     global index
     try:
-        total_start = time.time()  # Start total timer
+        time_start = time.time()  # Start total timer
 
         data = await request.json()
         new_message = data.get("new_message", {})
@@ -156,10 +156,7 @@ async def generate_text(request: Request):
         )
         
         # Start timer for answering phase (including prompt building if desired)
-        answering_start = time.time()
-        
-        # Start inference timer immediately before calling the generation service
-        inference_start = time.time()
+
         answer = generator.text_generation(
             prompt,
             max_new_tokens=128,  # Limit response length
@@ -169,19 +166,14 @@ async def generate_text(request: Request):
             do_sample=True,      # Enable sampling for diverse responses
             return_full_text=False
         )
-        inference_end = time.time()  # End inference timer
         
-        answering_end = time.time()  # End answering timer
-        
-        total_end = time.time()      # End total timer
+        time_end = time.time()      # End total timer
         
         return {
             "generated_text": answer,
             "contexts": [node.text for node in nodes_retrieved],
             "timing": {
-                "total_generation_time_seconds": round(total_end - total_start, 4),
-                "inference_time_seconds": round(inference_end - inference_start, 4),
-                "answering_time_seconds": round(answering_end - answering_start, 4)
+                "generation_time_seconds": round(time_end - time_start, 4)
             }
         }
     except Exception as e:
@@ -203,4 +195,4 @@ def read_root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-ß
+

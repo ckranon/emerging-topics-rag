@@ -1,1 +1,4 @@
-data/
+containers/data/*
+containers/index_storage/
+containers/tei_data/*
+containers/tgi_data/*
