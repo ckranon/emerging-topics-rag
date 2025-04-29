@@ -125,18 +125,6 @@ RAG-API/
 
 ---
 
-## 📊 Evaluation
-- Code Modularity & Best Practices (10 pts)
-- Response Speed (10 pts)
-- RAGAS Metrics Score (10 pts)
-
----
-
-## 🧠 Authors
-Group X — [Your names/IDs here]
-
----
-
 ## 📦 Submission
 Submit `group_X.zip` including:
 - All code and configuration files
