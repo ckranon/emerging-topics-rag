@@ -11,7 +11,7 @@ import os
 
 app = FastAPI()
 
-CHROMA_DIR = "../vector_store/chroma.db"
+CHROMA_DIR = "../vector_store/.chroma"
 EMBEDDING_URL = "http://embedding:8001/embed"
 OLLAMA_URL = "http://llm:11434/api/generate"
 
@@ -55,9 +55,11 @@ def generate(req: GenerateRequest):
     contexts = results["documents"][0]
 
     prompt = (
-    "You are a helpful assistant. Use the context below to answer the user's question.\n\n"
-    f"Context:\n{chr(10).join(contexts)}\n\n"
-    f"Question: {query}\nAnswer:")
+        "Eres un asistente útil. Utiliza el siguiente contexto para responder a la pregunta del usuario.\n\n"
+        f"Contexto:\n{chr(10).join(contexts)}\n\n"
+        f"Pregunta: {query}\n"
+        "Respuesta:"
+    )
 
     gen_response = requests.post(OLLAMA_URL, json={"model": "qwen2.5:0.5b", "prompt": prompt, "stream": False})
     answer = gen_response.json().get("response", "")
