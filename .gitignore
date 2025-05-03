@@ -1,4 +1,2 @@
-containers/data/*
-containers/index_storage/
-containers/tei_data/*
-containers/tgi_data/*
+eval_dataset/*
+avg_time.txt
