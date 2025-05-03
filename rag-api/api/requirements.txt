@@ -4,5 +4,6 @@ uvicorn==0.29.0
 requests==2.31.0
 chromadb==0.4.24
 llama-index==0.10.32
-sentence-transformers==2.6.1
+#sentence-transformers==2.6.1 <- Used for English Embeddings
+sentence-transformers==3.3.0 # <- Used for Spanish Embeddings
 tqdm==4.66.2
