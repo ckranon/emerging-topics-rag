@@ -4,7 +4,7 @@ import uvicorn
 
 app = FastAPI()
 model = SentenceTransformer("sentence-transformers/static-similarity-mrl-multilingual-v1") # <- SPANISH!
-# model = SentenceTransformer("BAAI/bge-small-en") # <- ENGLISH!
+
 
 @app.post("/embed")
 async def embed(request: Request):
