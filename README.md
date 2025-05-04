@@ -1,135 +1,167 @@
-# 🧠 RAG API — Retrieval-Augmented Generation System
+# Emerging Topics RAG — Retrieval-Augmented Generation System
 
-This project implements a **Dockerized RAG (Retrieval-Augmented Generation) API** designed to run efficiently on **CPU-only machines** and handle **100,000+ documents** for question answering. The system uses a modular microservice structure with the following components:
+A Dockerized RAG (Retrieval-Augmented Generation) system optimized for CPU-only environments, capable of indexing and querying large-scale document collections (100k+ documents). This repository includes the RAG API microservices as a git submodule.
 
-- **API Service (`api/`)** — Hosts endpoints to upload documents and generate answers.
-- **Embedding Service (`embedding/`)** — Converts text into vector embeddings using a sentence-transformer model.
-- **LLM Generation Service (`ollama/`)** — Uses a local language model (e.g., Qwen2.5-0.5B) via Ollama.
-- **Vector Store (`vector_store/`)** — Stores embeddings using ChromaDB.
+## Table of Contents
 
----
+* [Features](#features)
+* [Prerequisites](#prerequisites)
+* [Getting Started](#getting-started)
+* [RAG API Submodule](#rag-api-submodule)
+* [API Endpoints](#api-endpoints)
 
-## 🚀 Features
+  * [GET /](#get-)
+  * [POST /upload](#post-upload)
+  * [POST /generate](#post-generate)
+* [Docker Setup](#docker-setup)
+* [Testing](#testing)
+* [Project Structure](#project-structure)
+* [Contributing](#contributing)
+* [License](#license)
 
-- Upload and index large-scale documents (100k+ with ~5k characters each)
-- Query documents with contextual responses from a local LLM
-- Optimized for CPU-only environments (<16GB RAM)
-- Follows MLOps and modular coding best practices
-- Scored with RAGAS metrics for precision and relevance
+## Features
 
----
+* Upload and index large-scale documents (>100k, \~5k characters each)
+* Query documents with contextual responses from a local LLM
+* CPU-only operation (<16GB RAM)
+* Modular microservices following MLOps best practices
+* Scored with RAGAS metrics for precision and relevance
 
-## 🧩 API Endpoints
+## Prerequisites
 
-### 1. `GET /` — API Status Check
+* Docker v20.10+
+* Docker Compose v1.27+
+* CPU-only machine (≤16GB RAM)
+* [Ollama](https://ollama.com/) installed for local LLM serving
+* **Environment variable**: set `OPENAI_API_KEY` for CLI usage (e.g., `export OPENAI_API_KEY=your_key`)
+
+## Getting Started
+
+Clone the repository with submodules:
+
+```bash
+git clone https://github.com/ckranon/emerging-topics-rag.git --recursive
+cd emerging-topics-rag/rag-api
+```
+
+Or, if you have already cloned:
+
+```bash
+git submodule update --init --recursive
+cd rag-api
+```
+
+## RAG API Submodule
+
+The `rag-api/` directory contains the microservice components:
+
+* **api/** — FastAPI endpoints (`api_rag.py`)
+* **embedding/** — Embedding server (`embed_server.py`)
+* **ollama/** — Local LLM runner (`start.sh`)
+* **vector\_store/** — ChromaDB vector index
+
+## API Endpoints
+
+### GET /
+
+Status check:
+
+```bash
+curl http://localhost:8000/
+# {"message":"RAG API is running successfully"}
+```
+
+### POST /upload
+
+Uploads and indexes documents.
+
+```bash
+curl -X POST http://localhost:8000/upload \
+  -H "Content-Type: application/json" \
+  -d '{"texts":["Document 1 text...","Document 2 text..."]}'
+```
+
+**Response:**
+
+```json
+{"message":"Vector index successfully created","nodes_count":123}
+```
+
+### POST /generate
+
+Generates answers based on document context.
+
+```bash
+curl -X POST http://localhost:8000/generate \
+  -H "Content-Type: application/json" \
+  -d '{"new_message":{"role":"user","content":"What is the capital of France?"}}'
+```
+
+**Response:**
+
 ```json
 {
-  "message": "RAG API is running successfully"
+  "generated_text":"The capital of France is Paris.",
+  "contexts":["Paris is the capital of France. It is known for the Eiffel Tower."]
 }
 ```
 
-### 2. `POST /upload`
-Uploads documents and stores vector embeddings.
-#### Request:
-```json
-{
-  "texts": [
-    "Document 1 text...",
-    "Document 2 text..."
-  ]
-}
-```
-#### Response:
-```json
-{
-  "message": "Vector index successfully created",
-  "nodes_count": 123
-}
-```
+## Docker Setup
 
-### 3. `POST /generate`
-Generates an answer based on document context.
-#### Request:
-```json
-{
-  "new_message": {
-    "role": "user",
-    "content": "What is the capital of France?"
-  }
-}
-```
-#### Response:
-```json
-{
-  "generated_text": "The capital of France is Paris.",
-  "contexts": [
-    "Paris is the capital of France. It is known for the Eiffel Tower."
-  ]
-}
-```
+Build and run all services:
 
----
-
-## 🐳 Docker Setup
-
-### Build & Run
 ```bash
 docker-compose up --build
 ```
 
-### Container Roles
-- `api` — FastAPI service running `api_rag.py`
-- `embedding` — Embedding service using `embed_server.py`
-- `ollama` — Runs local LLM using `start.sh` script
+* **api** — runs FastAPI (`api_rag.py`)
+* **embedding** — runs embedding server (`embed_server.py`)
+* **ollama** — runs LLM via `start.sh`
 
----
+## Testing
 
-## 🧪 Testing
+Run the test script to verify all endpoints:
 
-Run the provided test script to verify API:
 ```bash
 python test_api.py
 ```
-This checks all endpoints: status, upload, and generate.
 
----
+Compute RAG metrics via CLI (requires `OPENAI_API_KEY`):
 
-## 📁 Project Structure
-```
-RAG-API/
-├── api/
-│   ├── api_rag.py
-│   ├── Dockerfile
-│   └── requirements.txt
-├── embedding/
-│   ├── embed_server.py
-│   ├── Dockerfile
-│   └── requirements.txt
-├── ollama/
-│   ├── start.sh
-│   └── Dockerfile
-├── vector_store/
-│   └── chroma.db
-├── docker-compose.yaml
-├── test_api.py
-└── README.md
+```bash
+export OPENAI_API_KEY=your_key
+python compute_metrics.py
 ```
 
----
+## Project Structure
 
-## ✅ Requirements
+```
+emerging-topics-rag/
+├── .gitignore
+├── README.md         # this file
+├── compute_metrics.py # script to compute RAG metrics via CLI (requires OPENAI_API_KEY)
+└── rag-api/          # submodule with RAG microservices
+    ├── api/
+    │   ├── api_rag.py
+    │   ├── Dockerfile
+    │   └── requirements.txt
+    ├── embedding/
+    │   ├── embed_server.py
+    │   ├── Dockerfile
+    │   └── requirements.txt
+    ├── ollama/
+    │   ├── start.sh
+    │   └── Dockerfile
+    ├── vector_store/
+    │   └── chroma.db
+    ├── docker-compose.yaml
+    └── test_api.py
+```
 
-- Docker v28.0.1
-- Docker Compose v2.33.1
-- CPU-only machine (≤16GB RAM)
+## Contributing
 
----
+Contributions are welcome! Please fork the repo, make your changes, and submit a pull request or open an issue for discussion.
 
-## 📦 Submission
-Submit `group_X.zip` including:
-- All code and configuration files
-- `README.md`, `requirements.txt`, and scripts
-- `docker-compose.yaml`
+## License
 
----
-
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
