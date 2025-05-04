@@ -41,7 +41,6 @@ A Dockerized Retrieval-Augmented Generation (RAG) system optimized for CPU-only 
 * Docker v20.10+
 * Docker Compose v1.27+
 * CPU-only machine (≥8GB RAM recommended)
-* [Ollama](https://ollama.com/) installed with a supported model
 * (Optional) `OPENAI_API_KEY` set for metric computation:
 
 ```bash
@@ -55,18 +54,10 @@ export OPENAI_API_KEY=your_key
 ### Clone the repository with submodules:
 
 ```bash
-git clone https://github.com/ckranon/emerging-topics-rag.git --recursive
+git clone https://github.com/ckranon/emerging-topics-rag.git
 cd emerging-topics-rag/rag-api
 ```
 
-### If already cloned:
-
-```bash
-git submodule update --init --recursive
-cd rag-api
-```
-
----
 
 ## RAG API Submodule
 
@@ -76,9 +67,8 @@ Located in `rag-api/`, the core RAG pipeline includes:
 * `embedding/` — Embedding server using `SentenceTransformers`
 * `ollama/` — Local LLM runner using [Ollama](https://ollama.com/)
 * `vector_store/` — Persistent ChromaDB vector index
-* `test_api.py` — Basic integration test script
-
----
+* `test_api.py` — Basic integration test script; returns average respones time.
+* `compute_metrics.py` — Computes RAGAS Metrics based on generated results from `test_api.py`
 
 ## API Endpoints
 
@@ -149,13 +139,7 @@ docker-compose up --build
 
 * `api` — FastAPI service for user interaction
 * `embedding` — Generates document embeddings
-* `ollama` — Runs a local LLM using `start.sh`
-
-Ensure your Ollama model (e.g., `mistral`, `llama2`) is pulled and ready with:
-
-```bash
-ollama run mistral
-```
+* `ollama` — Runs a local LLM using `start.sh` <- Can change model.
 
 ---
 
@@ -174,7 +158,7 @@ export OPENAI_API_KEY=your_key
 python compute_metrics.py
 ```
 
-> ⚠️ Due to runtime and API constraints, metric computation may timeout on large datasets.
+> ⚠️ Due to runtime and API constraints, metric computation may timeout.
 
 ---
 
@@ -188,7 +172,7 @@ We compared:
 * **Sentence Window Chunking** — Fixed-size overlapping windows
 
 **Result:**
-Semantic chunking led to more coherent retrievals and improved qualitative answer relevance. However, it incurred higher latency and memory usage.
+Inconclusive. `compute_metrics.py` timeout.
 
 ---
 
@@ -196,11 +180,11 @@ Semantic chunking led to more coherent retrievals and improved qualitative answe
 
 We explored different LLMs:
 
-* **DeepSeek-Coder-R1** (reasoning-focused, open-weight)
-* **Mistral-7B** via Ollama (lightweight default)
+* **DeepSeek-R1:1.5b** (reasoning-focused, open-weight)
+* **Qwen2.5:0.5b** (BASELINE)
 
 **Result:**
-DeepSeek demonstrated better multi-hop and reasoning capabilities, but was more resource-intensive. Mistral offered a good balance for real-time CPU-based querying.
+Inconclusive. `compute_metrics.py` timeout.
 
 ---
 
@@ -212,7 +196,15 @@ We tested:
 * **[Hugging Face TGI](https://github.com/huggingface/text-generation-inference)** — Scalable backend for multi-GPU serving
 
 **Result:**
-Ollama was ideal for CPU-bound experimentation and local workflows. TGI, while powerful, required a more complex deployment pipeline and additional hardware.
+Ollama replaced TGI due to TGI not being able to pull baseline models.
+
+---
+
+---
+
+### Vector Stores
+
+Insteaad of using HuggingFace TGI, we implemented a persistent storage using Chroma.db.
 
 ---
 
@@ -221,8 +213,6 @@ Ollama was ideal for CPU-bound experimentation and local workflows. TGI, while p
 Although the pipeline stores generation outputs for downstream evaluation, **RAGAS metric computation consistently timed out** during execution due to:
 
 * API response delays from OpenAI
-* Large context size
-* Limited memory and processing budget
 
 **As a result**, we deliver a **baseline model** with only qualitative improvement insights and no definitive RAGAS scores.
 
