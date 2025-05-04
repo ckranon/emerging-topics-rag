@@ -1,6 +1,6 @@
 # Emerging Topics RAG — Retrieval-Augmented Generation System
 
-A Dockerized RAG (Retrieval-Augmented Generation) system optimized for CPU-only environments, capable of indexing and querying large-scale document collections (100k+ documents). This repository includes the RAG API microservices as a git submodule.
+A Dockerized Retrieval-Augmented Generation (RAG) system optimized for CPU-only environments and capable of indexing and querying large-scale document collections (100k+ documents). This system integrates a modular API, local LLM serving via Ollama, and optional evaluation via RAGAS metrics. Ideal for research or educational deployment, especially in resource-constrained setups.
 
 ## Table of Contents
 
@@ -15,70 +15,97 @@ A Dockerized RAG (Retrieval-Augmented Generation) system optimized for CPU-only 
   * [POST /generate](#post-generate)
 * [Docker Setup](#docker-setup)
 * [Testing](#testing)
+* [Methodology & Findings](#methodology--findings)
 * [Project Structure](#project-structure)
+* [Use Cases](#use-cases)
+* [Limitations & Challenges](#limitations--challenges)
 * [Contributing](#contributing)
 * [License](#license)
+
+---
 
 ## Features
 
 * Upload and index large-scale documents (>100k, \~5k characters each)
-* Query documents with contextual responses from a local LLM
-* CPU-only operation (<16GB RAM)
-* Modular microservices following MLOps best practices
-* Scored with RAGAS metrics for precision and relevance
+* Perform semantic search with contextual answer generation
+* CPU-only compatible (≤16GB RAM, no GPU needed)
+* Modular microservices: FastAPI, embedding service, LLM wrapper, ChromaDB
+* Local LLM inference via Ollama (e.g., Mistral, LLaMA 2)
+* RAGAS-ready pipeline for evaluating answer quality and context precision
+* Designed for extensibility, benchmarking, and privacy-preserving applications
+
+---
 
 ## Prerequisites
 
 * Docker v20.10+
 * Docker Compose v1.27+
-* CPU-only machine (≤16GB RAM)
-* [Ollama](https://ollama.com/) installed for local LLM serving
-* **Environment variable**: set `OPENAI_API_KEY` for CLI usage (e.g., `export OPENAI_API_KEY=your_key`)
+* CPU-only machine (≥8GB RAM recommended)
+* [Ollama](https://ollama.com/) installed with a supported model
+* (Optional) `OPENAI_API_KEY` set for metric computation:
+
+```bash
+export OPENAI_API_KEY=your_key
+```
+
+---
 
 ## Getting Started
 
-Clone the repository with submodules:
+### Clone the repository with submodules:
 
 ```bash
 git clone https://github.com/ckranon/emerging-topics-rag.git --recursive
 cd emerging-topics-rag/rag-api
 ```
 
-Or, if you have already cloned:
+### If already cloned:
 
 ```bash
 git submodule update --init --recursive
 cd rag-api
 ```
 
+---
+
 ## RAG API Submodule
 
-The `rag-api/` directory contains the microservice components:
+Located in `rag-api/`, the core RAG pipeline includes:
 
-* **api/** — FastAPI endpoints (`api_rag.py`)
-* **embedding/** — Embedding server (`embed_server.py`)
-* **ollama/** — Local LLM runner (`start.sh`)
-* **vector\_store/** — ChromaDB vector index
+* `api/` — FastAPI endpoints for document upload and generation
+* `embedding/` — Embedding server using `SentenceTransformers`
+* `ollama/` — Local LLM runner using [Ollama](https://ollama.com/)
+* `vector_store/` — Persistent ChromaDB vector index
+* `test_api.py` — Basic integration test script
+
+---
 
 ## API Endpoints
 
-### GET /
+### `GET /`
 
-Status check:
+Health check:
 
 ```bash
 curl http://localhost:8000/
-# {"message":"RAG API is running successfully"}
 ```
 
-### POST /upload
+**Response:**
 
-Uploads and indexes documents.
+```json
+{"message":"RAG API is running successfully"}
+```
+
+---
+
+### `POST /upload`
+
+Uploads documents and indexes them into the vector store.
 
 ```bash
 curl -X POST http://localhost:8000/upload \
   -H "Content-Type: application/json" \
-  -d '{"texts":["Document 1 text...","Document 2 text..."]}'
+  -d '{"texts":["Document 1 text...", "Document 2 text..."]}'
 ```
 
 **Response:**
@@ -87,9 +114,11 @@ curl -X POST http://localhost:8000/upload \
 {"message":"Vector index successfully created","nodes_count":123}
 ```
 
-### POST /generate
+---
 
-Generates answers based on document context.
+### `POST /generate`
+
+Generates an answer based on user query and retrieved document context.
 
 ```bash
 curl -X POST http://localhost:8000/generate \
@@ -101,46 +130,112 @@ curl -X POST http://localhost:8000/generate \
 
 ```json
 {
-  "generated_text":"The capital of France is Paris.",
-  "contexts":["Paris is the capital of France. It is known for the Eiffel Tower."]
+  "generated_text": "The capital of France is Paris.",
+  "contexts": ["Paris is the capital of France. It is known for the Eiffel Tower."]
 }
 ```
 
+---
+
 ## Docker Setup
 
-Build and run all services:
+To build and run all services:
 
 ```bash
 docker-compose up --build
 ```
 
-* **api** — runs FastAPI (`api_rag.py`)
-* **embedding** — runs embedding server (`embed_server.py`)
-* **ollama** — runs LLM via `start.sh`
+**Services launched:**
+
+* `api` — FastAPI service for user interaction
+* `embedding` — Generates document embeddings
+* `ollama` — Runs a local LLM using `start.sh`
+
+Ensure your Ollama model (e.g., `mistral`, `llama2`) is pulled and ready with:
+
+```bash
+ollama run mistral
+```
+
+---
 
 ## Testing
 
-Run the test script to verify all endpoints:
+### Run API tests:
 
 ```bash
 python test_api.py
 ```
 
-Compute RAG metrics via CLI (requires `OPENAI_API_KEY`):
+### Run RAGAS-based metric evaluation:
 
 ```bash
 export OPENAI_API_KEY=your_key
 python compute_metrics.py
 ```
 
+> ⚠️ Due to runtime and API constraints, metric computation may timeout on large datasets.
+
+---
+
+## Methodology & Findings
+
+### Chunking Strategy Evaluation
+
+We compared:
+
+* **Semantic Chunking** — Splitting based on semantic boundaries (embedding similarity)
+* **Sentence Window Chunking** — Fixed-size overlapping windows
+
+**Result:**
+Semantic chunking led to more coherent retrievals and improved qualitative answer relevance. However, it incurred higher latency and memory usage.
+
+---
+
+### Model Comparison
+
+We explored different LLMs:
+
+* **DeepSeek-Coder-R1** (reasoning-focused, open-weight)
+* **Mistral-7B** via Ollama (lightweight default)
+
+**Result:**
+DeepSeek demonstrated better multi-hop and reasoning capabilities, but was more resource-intensive. Mistral offered a good balance for real-time CPU-based querying.
+
+---
+
+### Inference Backends
+
+We tested:
+
+* **[Ollama](https://ollama.com/)** — Seamless local inference with minimal setup
+* **[Hugging Face TGI](https://github.com/huggingface/text-generation-inference)** — Scalable backend for multi-GPU serving
+
+**Result:**
+Ollama was ideal for CPU-bound experimentation and local workflows. TGI, while powerful, required a more complex deployment pipeline and additional hardware.
+
+---
+
+### Evaluation Issues
+
+Although the pipeline stores generation outputs for downstream evaluation, **RAGAS metric computation consistently timed out** during execution due to:
+
+* API response delays from OpenAI
+* Large context size
+* Limited memory and processing budget
+
+**As a result**, we deliver a **baseline model** with only qualitative improvement insights and no definitive RAGAS scores.
+
+---
+
 ## Project Structure
 
 ```
 emerging-topics-rag/
 ├── .gitignore
-├── README.md         # this file
-├── compute_metrics.py # script to compute RAG metrics via CLI (requires OPENAI_API_KEY)
-└── rag-api/          # submodule with RAG microservices
+├── README.md               # This file
+├── compute_metrics.py      # Metric computation using RAGAS (OpenAI required)
+└── rag-api/
     ├── api/
     │   ├── api_rag.py
     │   ├── Dockerfile
@@ -153,15 +248,50 @@ emerging-topics-rag/
     │   ├── start.sh
     │   └── Dockerfile
     ├── vector_store/
-    │   └── chroma.db
+    │   └── chroma.db       # Persistent ChromaDB index
     ├── docker-compose.yaml
     └── test_api.py
 ```
 
+---
+
+## Use Cases
+
+* **Research Prototypes** — Test chunking and RAG strategies
+* **Private Knowledge Retrieval** — Deploy local document Q\&A systems
+* **Teaching Tool** — Understand full-stack RAG pipelines
+* **Baseline Model Benchmarks** — Evaluate low-resource model performance
+
+---
+
+## Limitations & Challenges
+
+* **RAGAS Metrics Unavailable** — Due to OpenAI API timeout issues
+* **No GPU Support** — CPU-only by design; not optimized for high-scale workloads
+* **Manual Chunking Trade-offs** — Semantic methods improve results but increase complexity
+* **Ollama Model Limitation** — Must manually ensure models are pulled and accessible
+
+---
+
 ## Contributing
 
-Contributions are welcome! Please fork the repo, make your changes, and submit a pull request or open an issue for discussion.
+We welcome contributions!
+
+1. Fork the repository
+2. Create a new feature branch
+3. Commit your changes
+4. Open a pull request
+
+If you find a bug or have a feature request, feel free to open an [Issue](https://github.com/ckranon/emerging-topics-rag/issues).
+
+---
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute the code for academic or commercial purposes.
+
+---
+
+(https://github.com/user-attachments/assets/93e5ff9a-f5cb-457f-8637-e410b1058f17)
+---
+
