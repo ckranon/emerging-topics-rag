@@ -1,0 +1,7 @@
+# rag_api/embedding/requirements.txt
+fastapi==0.110.0
+uvicorn==0.29.0
+sentence-transformers==3.3.0
+torch==2.2.1
+tqdm==4.66.2
+numpy<2.0

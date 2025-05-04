@@ -1,0 +1,8 @@
+# rag_api/api/requirements.txt
+fastapi==0.110.0
+uvicorn==0.29.0
+requests==2.31.0
+chromadb==0.4.24
+llama-index==0.10.32
+sentence-transformers==3.3.0 # <- Used for Spanish Embeddings
+sentence-transformers==3.3.0

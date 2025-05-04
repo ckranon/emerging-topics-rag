@@ -1,0 +1,30 @@
+# docker-compose.yaml
+version: '3.8'
+
+services:
+  embedding:
+    build: ./embedding
+    ports:
+      - "8001:8001"
+    restart: always
+
+  llm:
+    build: ./ollama  # <-- This now uses your ollama/Dockerfile
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: always
+
+
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - embedding
+      - llm
+    restart: always
+
+volumes:
+  ollama_data:
